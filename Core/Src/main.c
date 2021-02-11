@@ -40,19 +40,16 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-//UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-//static void MX_USART2_UART_Init(void);
-
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -66,10 +63,8 @@ static void MX_GPIO_Init(void);
   * @brief  The application entry point.
   * @retval int
   */
-
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -77,7 +72,6 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -85,7 +79,6 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
-
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -93,81 +86,74 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-
   MX_GPIO_Init();
-  //MX_USART2_UART_Init();
+  MX_USART2_UART_Init();
+
 
   /* USER CODE BEGIN 2 */
+  //------------------------------------------------------
+   GPIO_PinState SwitchState[2];  //Now, Previous
+   uint16_t LED1_Half_Period = 500;  // 1 Hz
+   uint32_t TimeStamp = 0;
+   uint32_t ButtonTimeStamp = 0;
 
-  GPIO_PinState SwitchState[2];
-  uint16_t LED1_HalfPeriod = 500; //1Hz
-  uint32_t TimeStamp =0;
-  uint32_t ButtonTimeStamp = 0;
-
+  //------------------------------------------------------
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
   while (1)
   {
+   if(HAL_GetTick() - ButtonTimeStamp >= 100)
+   {
+    ButtonTimeStamp = HAL_GetTick();
+
+    SwitchState[0] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10);
+       //Press = Low , No = High
+       if(SwitchState[0] == GPIO_PIN_SET && SwitchState[1] == GPIO_PIN_RESET)
+       // set = high , reset = low
+       {
+        //Change Half Period of LED 1
+        if(LED1_Half_Period == 500)
+        {
+         LED1_Half_Period = 250;
+        }
+        else
+        {
+         LED1_Half_Period = 500;
+        }
+       }
+       SwitchState[1] = SwitchState[0];
+   }
+
+
+
+   //Run LED
+   if(HAL_GetTick() - TimeStamp >= LED1_Half_Period) //millisecond now time
+   {
+    TimeStamp = HAL_GetTick();
+    if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_SET)
+    {
+     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET);
+    }
+    else
+    {
+     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET);
+    }
+   }
+
+
 
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
-	  //Switch press is LOW
-	  if(HAL_GetTick() - ButtonTimeStamp >= 100)
-	  {
-
-	  SwitchState[0]= HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10);
-	  if (SwitchState[1] == GPIO_PIN_SET
-			  && SwitchState[0] == GPIO_PIN_RESET)
-	  {
-
-		  //Change Half Period of LED1
-
-		  if(LED1_HalfPeriod == 500)
-		  {
-			  LED1_HalfPeriod = 250;
-		  }
-		  else
-		  {
-			  LED1_HalfPeriod = 500;
-		  }
-
-	  }
-	  SwitchState[1]= SwitchState[0];
-	  }
-
-	  //Run LED
-
-	  if(HAL_GetTick()- TimeStamp >= LED1_HalfPeriod)
-	  {
-		TimeStamp =HAL_GetTick();
-		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9)== GPIO_PIN_SET)
-		{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET);
-		}
-		else
-		{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET);
-		}
-
-	  }
-
-
-
   }
-
   /* USER CODE END 3 */
-
 }
 
 /**
   * @brief System Clock Configuration
   * @retval None
   */
-
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -175,13 +161,11 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -195,10 +179,8 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
   /** Initializes the CPU, AHB and APB buses clocks
   */
-
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -210,6 +192,39 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
 }
 
 /**
@@ -235,14 +250,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : USART_TX_Pin USART_RX_Pin */
-  GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD2_Pin PA9 */
   GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_9;
